@@ -31,6 +31,7 @@ conda activate RoseTTAFold
 ############################################################
 # 1. generate MSAs
 ############################################################
+# 如果文件非0
 if [ ! -s $WDIR/t000_.msa0.a3m ]
 then
     echo "Running HHblits"
