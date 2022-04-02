@@ -14,7 +14,7 @@ MEM="$4"
 # sequence databases
 declare -a DATABASES=( \
     "$PIPEDIR/UniRef30_2020_06/UniRef30_2020_06" \
-    "$PIPEDIR/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt")
+    "$PIPEDIR/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt") #理论上，我可以取消这个库
 
 # setup hhblits command
 HHBLITS="hhblits -o /dev/null -mact 0.35 -maxfilt 100000000 -neffmax 20 -cov 25 -cpu $CPU -nodiff -realign_max 100000000 -maxseq 1000000 -maxmem $MEM -n 4"
@@ -56,5 +56,5 @@ done
 
 if [ ! -s ${out_prefix}.msa0.a3m ]
 then
-    cp $prev_a3m ${out_prefix}.msa0.a3m
+    cp $prev_a3m ${out_prefix}.msa0.a3m   #将 搜索结果设置在这里
 fi
