@@ -69,9 +69,9 @@ class QueryEncoding(nn.Module):
 class MSA_emb(nn.Module):
     def __init__(self, d_model=64, d_msa=21, p_drop=0.1, max_len=5000):
         super(MSA_emb, self).__init__()
-        self.emb = nn.Embedding(d_msa, d_model)
-        self.pos = PositionalEncoding(d_model, p_drop=p_drop, max_len=max_len)
-        self.pos_q = QueryEncoding(d_model)
+        self.emb = nn.Embedding(d_msa, d_model)  #第一个embedding 不是指这时有21个维度，而是原来有21个词，在这里被映射为64的维度
+        self.pos = PositionalEncoding(d_model, p_drop=p_drop, max_len=max_len) #正弦位置编码
+        self.pos_q = QueryEncoding(d_model)  #序列编码
     def forward(self, msa, idx):
         B, N, L = msa.shape
         out = self.emb(msa) # (B, N, L, K//2)
