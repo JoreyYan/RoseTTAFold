@@ -115,17 +115,17 @@ class Predictor():
     def predict(self, a3m_fn, out_prefix, hhr_fn=None, atab_fn=None, window=150, shift=75):
         msa = parse_a3m(a3m_fn)
         N, L = msa.shape
-        #
+        # 只有两个维度，
         if hhr_fn != None:
             xyz_t, t1d, t0d = read_templates(L, ffdb, hhr_fn, atab_fn, n_templ=10)
         else:
             xyz_t = torch.full((1, L, 3, 3), np.nan).float()
             t1d = torch.zeros((1, L, 3)).float()
             t0d = torch.zeros((1,3)).float()
-        #
+        #维度从 428 138  变成 ([1, 428, 138])
         msa = torch.tensor(msa).long().view(1, -1, L)
         idx_pdb = torch.arange(L).long().view(1, L)
-        seq = msa[:,0]
+        seq = msa[:,0]  #这好像是一条啊
         #
         # template features
         xyz_t = xyz_t.float().unsqueeze(0)
@@ -138,20 +138,20 @@ class Predictor():
             print ("ERROR: failed to load model")
             sys.exit()
         self.model.eval()
-        with torch.no_grad():
+        with torch.no_grad(): #被 torch.no_grad(): 包住的代码 不用于反向梯度计算
             # do cropped prediction if protein is too big
             if L > window*2:
                 prob_s = [np.zeros((L,L,NBIN[i]), dtype=np.float32) for  i in range(4)]
-                count_1d = np.zeros((L,), dtype=np.float32)
-                count_2d = np.zeros((L,L), dtype=np.float32)
-                node_s = np.zeros((L,MODEL_PARAM['d_msa']), dtype=np.float32)
+                count_1d = np.zeros((L,), dtype=np.float32) # 一维特征表
+                count_2d = np.zeros((L,L), dtype=np.float32) # 二维特征表
+                node_s = np.zeros((L,MODEL_PARAM['d_msa']), dtype=np.float32) # 长度*384
                 #
                 grids = np.arange(0, L-window+shift, shift)
                 ngrids = grids.shape[0]
                 print("ngrid:     ", ngrids)
                 print("grids:     ", grids)
                 print("windows:   ", window)
-
+                # 这部分是切成长度为window的块，且有shift的重复        
                 for i in range(ngrids):
                     for j in range(i, ngrids):
                         start_1 = grids[i]
@@ -162,19 +162,22 @@ class Predictor():
                         sel[start_1:end_1] = True
                         sel[start_2:end_2] = True
                        
-                        input_msa = msa[:,:,sel]
+                        input_msa = msa[:,:,sel] 
+                        # 如果input_msa==20 说明这个位置是gap。 这一步如果小于0.5* 则这一条的mask=0， 否则=1
                         mask = torch.sum(input_msa==20, dim=-1) < 0.5*sel.sum() # remove too gappy sequences
+                        
+                        # 如果这条的-太多，mask被打赏0 ，在这一步里面就被除掉了
                         input_msa = input_msa[mask].unsqueeze(0)
-                        input_msa = input_msa[:,:1000].to(self.device)
+                        input_msa = input_msa[:,:1000].to(self.device) #第二个维度上，即条数上，取前10个
                         input_idx = idx_pdb[:,sel].to(self.device)
                         input_seq = input_msa[:,0].to(self.device)
                         #
-                        # Select template
+                        # Select template 一维，二维信息
                         input_t1d = t1d[:,:,sel].to(self.device) # (B, T, L, 3)
                         input_t2d = t2d[:,:,sel][:,:,:,sel].to(self.device)
                         #
                         print ("running crop: %d-%d/%d-%d"%(start_1, end_1, start_2, end_2), input_msa.shape)
-                        with torch.cuda.amp.autocast():
+                        with torch.cuda.amp.autocast(): # 开启混合精度训练
                             logit_s, node, init_crds, pred_lddt = self.model(input_msa, input_seq, input_idx, t1d=input_t1d, t2d=input_t2d, return_raw=True)
                         #
                         # Not sure How can we merge init_crds.....
