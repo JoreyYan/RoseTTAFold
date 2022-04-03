@@ -55,8 +55,9 @@ DB="$PIPEDIR/pdb100_2021Mar03/pdb100_2021Mar03"
 if [ ! -s $WDIR/t000_.hhr ]
 then
     echo "Running hhsearch"
+    #这里运行了HH之后，就会生成 HHR文件
     HH="hhsearch -b 50 -B 500 -z 50 -Z 500 -mact 0.05 -cpu $CPU -maxmem $MEM -aliw 100000 -e 100 -p 5.0 -d $DB"
-    cat $WDIR/t000_.ss2 $WDIR/t000_.msa0.a3m > $WDIR/t000_.msa0.ss2.a3m
+    cat $WDIR/t000_.ss2 $WDIR/t000_.msa0.a3m > $WDIR/t000_.msa0.ss2.a3m  #HHR文件和前面的文件拼接在一起，生成 a3m文件
     $HH -i $WDIR/t000_.msa0.ss2.a3m -o $WDIR/t000_.hhr -atab $WDIR/t000_.atab -v 0 > $WDIR/log/hhsearch.stdout 2> $WDIR/log/hhsearch.stderr
 fi
 
