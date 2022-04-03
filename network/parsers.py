@@ -5,7 +5,7 @@ import string
 import os,re
 import random
 import util
-import torch
+import torchN
 from ffindex import *
 
 to1letter = {
@@ -19,9 +19,10 @@ to1letter = {
 def parse_a3m(filename):
 
     msa = []
-
+    #分别是生成 a~z, 用这26个字母作为关键字建立字典，https://www.runoob.com/python3/python3-string-maketrans.html
+    #make trans 是想把用于构建要给从字符串映射到 另一个特征的映射表
     table = str.maketrans(dict.fromkeys(string.ascii_lowercase))
-
+       
     # read file line by line
     for line in open(filename,"r"):
 
@@ -29,19 +30,21 @@ def parse_a3m(filename):
         if line[0] == '>':
             continue
 
-        # remove right whitespaces
+        # remove right whitespaces  删除末尾空白格
         line = line.rstrip()
 
-        # remove lowercase letters and append to MSA
+        # remove lowercase letters and append to MSA  去掉小写字母
         msa.append(line.translate(table))
 
     # convert letters into numbers
-    alphabet = np.array(list("ARNDCQEGHILKMFPSTWYV-"), dtype='|S1').view(np.uint8)
+    alphabet = np.array(list("ARNDCQEGHILKMFPSTWYV-"), dtype='|S1').view(np.uint8) #字符转换acii格式
     msa = np.array([list(s) for s in msa], dtype='|S1').view(np.uint8)
     for i in range(alphabet.shape[0]):
         msa[msa == alphabet[i]] = i
-
-    # treat all unknown characters as gaps
+    #A=0，R=1，N=2 这样，把msa改为 0~19
+    
+    
+    # treat all unknown characters as gaps  未知的是个空格
     msa[msa > 20] = 20
 
     return msa
@@ -184,8 +187,8 @@ def parse_templates(ffdb, hhr_fn, atab_fn, n_templ=10):
         elif "score" in l or "dssp" in l:
             continue
         else:
-            hi = l.split()[:5]+[0.0,0.0,0.0]
-            hits[-1][1].append([int(hi[0]),int(hi[1])])
+            hi = l.split()[:5]+[0.0,0.0,0.0]  # 读取前5列，并添加三个空白位置
+            hits[-1][1].append([int(hi[0]),int(hi[1])])  #最新的一个条目上，第二个[]里面是位置信息，第三个[]里面是浮点信息
             hits[-1][2].append([float(hi[2]),float(hi[3]),float(hi[4])])
 
     # get per-hit statistics from an .hhr file
@@ -193,19 +196,19 @@ def parse_templates(ffdb, hhr_fn, atab_fn, n_templ=10):
     # [Probab, E-value, Score, Aligned_cols, 
     # Identities, Similarity, Sum_probs, Template_Neff]
     lines = open(hhr_fn, "r").readlines()
-    pos = [i+1 for i,l in enumerate(lines) if l[0]=='>']
+    pos = [i+1 for i,l in enumerate(lines) if l[0]=='>'] #把文件名所在的行的下一行给列举出来
     for i,posi in enumerate(pos):
-        hits[i].append([float(s) for s in re.sub('[=%]',' ',lines[posi]).split()[1::2]])
+        hits[i].append([float(s) for s in re.sub('[=%]',' ',lines[posi]).split()[1::2]]) # 从第一项开始 每2个取一个
         
-    # parse templates from FFDB
+    # parse templates from FFDB   来自pdb数据库的文件
     for hi in hits:
         #if hi[0] not in ffids:
         #    continue
-        entry = get_entry_by_name(hi[0], ffdb.index)
+        entry = get_entry_by_name(hi[0], ffdb.index) # 看看pdb数据库中有没有这个搜搜的条目的名字
         if entry == None:
             continue
-        data = read_entry_lines(entry, ffdb.data)
-        hi += list(parse_pdb_lines(data))
+        data = read_entry_lines(entry, ffdb.data) #读取这个pdb数据
+        hi += list(parse_pdb_lines(data))   # 添加pdb数据特征，主要是 C Ca N原子的坐标信息
 
     # process hits
     counter = 0
@@ -214,18 +217,18 @@ def parse_templates(ffdb, hhr_fn, atab_fn, n_templ=10):
         if len(data)<7:
             continue
         
-        qi,ti = np.array(data[1]).T
+        qi,ti = np.array(data[1]).T   # 横纵坐标分开，对应矩阵xy轴
         _,sel1,sel2 = np.intersect1d(ti, data[6], return_indices=True)
         ncol = sel1.shape[0]
         if ncol < 10:
             continue
         
-        ids.append(data[0])
-        f0d.append(data[3])
-        f1d.append(np.array(data[2])[sel1])
-        xyz.append(data[4][sel2])
-        mask.append(data[5][sel2])
-        qmap.append(np.stack([qi[sel1]-1,[counter]*ncol],axis=-1))
+        ids.append(data[0])  #序列
+        f0d.append(data[3])  # 蛋白质整体特征
+        f1d.append(np.array(data[2])[sel1])   #残基对特征
+        xyz.append(data[4][sel2])    
+        mask.append(data[5][sel2])  #制作的mask，可能是对应坐标位置为1  否则为0 
+        qmap.append(np.stack([qi[sel1]-1,[counter]*ncol],axis=-1))  #不清楚 ，只有跑一边才知道
         counter += 1
 
     xyz = np.vstack(xyz).astype(np.float32)
