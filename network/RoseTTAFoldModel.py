@@ -39,7 +39,7 @@ class RoseTTAFoldModule(nn.Module):
         self.c6d_predictor = DistanceNetwork(d_pair, p_drop=p_drop)
 
     def forward(self, msa, seq, idx, t1d=None, t2d=None):
-        B, N, L = msa.shape
+        B, N, L = msa.shape #第一个B是batch
         # Get embeddings
         msa = self.msa_emb(msa, idx)
         if self.use_templ:
