@@ -115,7 +115,7 @@ class Predictor():
     def predict(self, a3m_fn, out_prefix, hhr_fn=None, atab_fn=None, window=150, shift=75):
         msa = parse_a3m(a3m_fn)
         N, L = msa.shape
-        #
+        #这里N 与L 分别是条数与长度，这里编码还是0~20，还不是矩阵
         if hhr_fn != None:
             xyz_t, t1d, t0d = read_templates(L, ffdb, hhr_fn, atab_fn, n_templ=10)
         else:
