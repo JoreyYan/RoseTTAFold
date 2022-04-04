@@ -15,6 +15,9 @@ def create_custom_forward(module, **kwargs):
     return custom_forward
 
 class LayerNorm(nn.Module):
+    """
+    进行X1标准化，主要是减平均值除以标准差
+    """    
     def __init__(self, d_model, eps=1e-5):
         super(LayerNorm, self).__init__()
         self.a_2 = nn.Parameter(torch.ones(d_model))
@@ -22,8 +25,8 @@ class LayerNorm(nn.Module):
         self.eps = eps
 
     def forward(self, x):
-        mean = x.mean(-1, keepdim=True)
-        std = torch.sqrt(x.var(dim=-1, keepdim=True, unbiased=False) + self.eps)
+        mean = x.mean(-1, keepdim=True)  #按照最后一维返回平均值
+        std = torch.sqrt(x.var(dim=-1, keepdim=True, unbiased=False) + self.eps) #方差
         x = self.a_2*(x-mean)
         x /= std
         x += self.b_2
@@ -111,7 +114,7 @@ class TiedMultiheadAttention(nn.Module):
         #attention = attention.sum(dim=1) # tied attention (B, h, L, L)
         scale = self.scaling / math.sqrt(N)
         q = q * scale
-        attention = torch.einsum('bnhik,bnhkj->bhij', q, k)
+        attention = torch.einsum('bnhik,bnhkj->bhij', q, k) #分别在这两个角度求和  其实就是QK
         attention = F.softmax(attention, dim=-1) # (B, h, L, L)
         attention = self.dropout(attention)
         attention = attention.unsqueeze(1) # (B, 1, h, L, L)
@@ -349,10 +352,10 @@ class AxialEncoderLayer(nn.Module):
         self.dropout3 = nn.Dropout(p_drop, inplace=True)
 
     def forward(self, src, return_att=False):
-        # Input shape for multihead attention: (BATCH, NSEQ, NRES, EMB)
+        # Input shape for multihead attention: (BATCH, NSEQ, NRES, EMB)  batch/ 数量/ L长度/维度
         # Tied multihead attention w/ pre-LayerNorm
-        B, N, L = src.shape[:3]
-        src2 = self.norm1(src)
+        B, N, L = src.shape[:3] #前三维度
+        src2 = self.norm1(src)  #标准化
         if self.use_tied_row or self.use_soft_row:
             src2 = self.attn_L(src2, src2, src2) # Tied attention over L
         else:
