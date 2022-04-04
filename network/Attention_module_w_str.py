@@ -463,7 +463,7 @@ class IterativeFeatureExtractor(nn.Module):
         
         pair_s = list()
         pair = self.initial(pair)
-        if self.n_module > 0:
+        if self.n_module > 0:  #持续迭代获取特征
             for i_m in range(self.n_module):
                 # extract features from MSA & update original pair features
                 msa, pair = self.iter_block_1[i_m](msa, pair)
