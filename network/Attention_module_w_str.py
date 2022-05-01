@@ -50,6 +50,7 @@ def make_graph(xyz, pair, idx, top_k=64, kmin=9):
     tgt = b*L+j
     #这是构建一个图，src是起点，tgt是被指向
     G = dgl.graph((src, tgt), num_nodes=B*L).to(device)
+    #这里应该是给边属性赋值，d是两个点之间的距离  w是两个点之间D特征
     G.edata['d'] = (xyz[b,j,1,:] - xyz[b,i,1,:]).detach() # no gradient through basis function
     G.edata['w'] = pair[b,i,j]
 
