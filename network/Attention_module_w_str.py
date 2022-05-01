@@ -25,11 +25,11 @@ def make_graph(xyz, pair, idx, top_k=64, kmin=9):
     Output:
         - G: defined graph
     '''
-
+        #B是batchsize，我可以删掉
     B, L = xyz.shape[:2]
     device = xyz.device
     
-    # distance map from current CA coordinates
+    # 获取距离 distance map from current CA coordinates
     D = torch.cdist(xyz[:,:,1,:], xyz[:,:,1,:]) + torch.eye(L, device=device).unsqueeze(0)*999.9  # (B, L, L)
     # seq sep
     sep = idx[:,None,:] - idx[:,:,None]
@@ -48,6 +48,7 @@ def make_graph(xyz, pair, idx, top_k=64, kmin=9):
    
     src = b*L+i
     tgt = b*L+j
+    #这是构建一个图，src是起点，tgt是被指向
     G = dgl.graph((src, tgt), num_nodes=B*L).to(device)
     G.edata['d'] = (xyz[b,j,1,:] - xyz[b,i,1,:]).detach() # no gradient through basis function
     G.edata['w'] = pair[b,i,j]
